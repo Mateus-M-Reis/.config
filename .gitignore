@@ -1,0 +1,31 @@
+# ----------------------------------------------------------------------
+# Allowlist. Everything in ~/.config is ignored by default; only the
+# paths re-included below are published. Add one line to publish more.
+# ----------------------------------------------------------------------
+/*
+!/.gitignore
+!/README.md
+
+!/hypr/
+!/caelestia/
+!/foot/
+!/fish/
+!/btop/
+!/fuzzel/
+!/gtk-3.0/
+!/gtk-4.0/
+!/qt5ct/
+!/Kvantum/
+!/Thunar/
+!/autostart/
+!/cava/
+!/fastfetch/
+!/htop/
+!/lazygit/
+!/micro/
+!/terminator/
+!/starship.toml
+!/mimeapps.list
+
+# Secrets must never be committed.
+/hypr/hyprland/env.local.lua

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Freeze Heartbeat Logger
+Comment=Logs every 5s whether the kernel and X are alive (diagnostic for black-screen freezes)
+Exec=/home/machine/.local/bin/freeze-logger.sh
+Terminal=false
+NoDisplay=true
+Hidden=false
+X-GNOME-Autostart-enabled=true

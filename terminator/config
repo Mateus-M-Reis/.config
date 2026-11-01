@@ -1,0 +1,32 @@
+[global_config]
+  borderless = True
+  tab_position = bottom
+  disable_mouse_paste = True
+[keybindings]
+  close_term = <Super>w
+  close_window = <Super>q
+  next_tab = <Super>n
+  prev_tab = <Super>p
+  hide_window = F1
+  group_win = <Super>e
+  layout_launcher = ""
+  help = ""
+[profiles]
+  [[default]]
+    background_darkness = 0.85
+    background_type = transparent
+    font = IosevkaTerm Nerd Font Propo 15
+    foreground_color = "#ffffff"
+    show_titlebar = False
+    scrollbar_position = hidden
+    scroll_on_output = True
+    use_system_font = False
+[layouts]
+  [[default]]
+    [[[window0]]]
+      type = Window
+      parent = ""
+    [[[child1]]]
+      type = Terminal
+      parent = window0
+[plugins]
