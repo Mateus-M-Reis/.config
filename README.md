@@ -100,16 +100,17 @@ with `--once` / `--dry-run`.
 ## Brightness widget
 
 `SUPER + SHIFT + B` toggles a floating brightness card in the top-right corner
-of the focused monitor (equivalently
-`caelestia shell brightnessWidget toggle`). There is also a sun button in the
-bar's status pill, between the Wi-Fi and Bluetooth icons. Drag the card to move
-it, drag the slider or scroll over the card to change the panel brightness. The
-IPC target also exposes `open`, `close` and `status`.
+of the focused monitor (equivalently `caelestia shell brightnessWidget toggle`).
+The sun button in the bar's status pill, between the Wi-Fi and Bluetooth icons,
+opens a brightness popout attached to the bar instead, just like its neighbours.
+Both show the current level; drag the slider or scroll over it to change the
+panel brightness. The IPC target also exposes `open`, `close` and `status`.
 
 This is a local addition to the Caelestia shell, not part of the package:
 `caelestia/brightness-widget.patch` adds
-`modules/widgets/BrightnessWidget.qml`, registers it in `shell.qml`, and wires
-the status-pill button through `ShellState` and `Bar.qml`.
+`modules/widgets/BrightnessWidget.qml` and
+`modules/bar/popouts/BrightnessPopout.qml`, registers them, and inserts the
+status-pill entry next to the network icon.
 
 ## Lock screen on ABNT2
 

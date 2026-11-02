@@ -16,31 +16,6 @@
      BatteryMonitor {}
      IdleMonitors {
          lock: lock
---- a/services/ShellState.qml
-+++ b/services/ShellState.qml
-@@ -8,6 +8,8 @@
- 
- Singleton {
-     property ShellRoot shellRoot
-+    // Set by the floating brightness widget so the bar can toggle it.
-+    property var brightnessWidget
- 
-     function anySidebarOpen(): bool {
-         return states.instances.some(s => s.sidebar);
---- a/modules/bar/Bar.qml
-+++ b/modules/bar/Bar.qml
-@@ -47,6 +47,11 @@
-         if (id === "statusIcons" && Config.bar.popouts.statusIcons) {
-             const items = (ch.item as StatusIcons).items;
-             const icon = items.childAt(items.width / 2, mapToItem(items, 0, y).y);
-+            if (icon?.name === "brightness") {
-+                // Toggled by the entry's own MouseArea; there is no popout.
-+                popouts.hasCurrent = false;
-+                return;
-+            }
-             if (icon) {
-                 popouts.currentName = icon.name;
-                 popouts.currentCenter = Qt.binding(() => icon.mapToItem(root, 0, icon.implicitHeight / 2).y);
 --- a/modules/bar/components/StatusIcons.qml
 +++ b/modules/bar/components/StatusIcons.qml
 @@ -61,7 +61,17 @@
@@ -62,46 +37,141 @@
              }
  
              DelegateChooser {
-@@ -126,6 +136,36 @@
+@@ -126,6 +136,17 @@
                          }
                      }
                  }
 +                DelegateChoice {
 +                    roleValue: "brightness"
 +                    delegate: EntryWrapper {
-+                        Item {
-+                            implicitWidth: icon.implicitWidth
-+                            implicitHeight: icon.implicitHeight
-+                            // A plain Item does not follow its implicit size;
-+                            // without this the MouseArea below is 0x0.
-+                            width: implicitWidth
-+                            height: implicitHeight
-+
-+                            MaterialIcon {
-+                                id: icon
-+
-+                                anchors.centerIn: parent
-+                                text: "wb_sunny"
-+                                color: root.colour
-+                                fontStyle: Tokens.font.icon.medium
-+                                fill: 1
-+                            }
-+
-+                            MouseArea {
-+                                anchors.fill: parent
-+                                cursorShape: Qt.PointingHandCursor
-+
-+                                onClicked: ShellState.brightnessWidget?.toggle()
-+                            }
++                        MaterialIcon {
++                            text: "wb_sunny"
++                            color: root.colour
++                            fontStyle: Tokens.font.icon.medium
++                            fill: 1
 +                        }
 +                    }
 +                }
                  DelegateChoice {
                      roleValue: "bluetooth"
                      delegate: EntryWrapper {
+--- a/modules/bar/popouts/Content.qml
++++ b/modules/bar/popouts/Content.qml
+@@ -12,6 +12,7 @@
+     id: root
+ 
+     required property PopoutState popouts
++    required property ShellScreen screen
+     readonly property Popout currentPopout: content.children.find(c => c.shouldBeActive) ?? null
+     readonly property Item current: currentPopout?.item ?? null
+ 
+@@ -102,6 +103,13 @@
+             }
+         }
+ 
++        Popout {
++            name: "brightness"
++            sourceComponent: BrightnessPopout {
++                screen: root.screen
++            }
++        }
++
+         Popout {
+             name: "battery"
+             sourceComponent: Battery {}
+--- a/modules/bar/popouts/Wrapper.qml
++++ b/modules/bar/popouts/Wrapper.qml
+@@ -112,6 +112,7 @@
+ 
+         sourceComponent: Content {
+             popouts: popoutState
++            screen: root.screen
+         }
+     }
+ 
+--- /dev/null
++++ b/modules/bar/popouts/BrightnessPopout.qml
+@@ -0,0 +1,77 @@
++pragma ComponentBehavior: Bound
++
++import QtQuick
++import QtQuick.Layouts
++import Quickshell
++import Caelestia.Config
++import Caelestia.I18n
++import qs.components
++import qs.components.controls
++import qs.services
++
++Item {
++    id: root
++
++    required property ShellScreen screen
++
++    readonly property var monitor: Brightness.getMonitorForScreen(screen)
++    readonly property real step: GlobalConfig.services.brightnessIncrement
++
++    implicitWidth: Tokens.sizes.bar.audioWidth
++    implicitHeight: layout.implicitHeight + Tokens.padding.medium * 2
++
++
++    ColumnLayout {
++        id: layout
++
++        anchors.left: parent.left
++        anchors.right: parent.right
++        anchors.verticalCenter: parent.verticalCenter
++        spacing: Tokens.spacing.small
++
++        RowLayout {
++            Layout.fillWidth: true
++            spacing: Tokens.spacing.small
++
++            MaterialIcon {
++                text: "wb_sunny"
++                font: Tokens.font.icon.medium
++                color: Colours.palette.m3primary
++            }
++
++            StyledText {
++                Layout.fillWidth: true
++                text: Tr.tr("Brightness")
++                font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
++                color: Colours.palette.m3onSurface
++            }
++
++            StyledText {
++                text: `${Math.round((root.monitor?.brightness ?? 0) * 100)}%`
++                font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
++                color: Colours.palette.m3onSurfaceVariant
++            }
++        }
++
++        CustomMouseArea {
++            Layout.fillWidth: true
++            implicitHeight: Tokens.padding.medium * 3
++
++            onWheel: event => {
++                if (!root.monitor)
++                    return;
++                const delta = event.angleDelta.y > 0 ? root.step : -root.step;
++                root.monitor.setBrightness(root.monitor.brightness + delta);
++            }
++
++            StyledSlider {
++                anchors.left: parent.left
++                anchors.right: parent.right
++                implicitHeight: parent.implicitHeight
++
++                value: root.monitor?.brightness ?? 0
++                onInteraction: v => root.monitor?.setBrightness(v)
++            }
++        }
++    }
++}
 --- /dev/null
 +++ b/modules/widgets/BrightnessWidget.qml
-@@ -0,0 +1,192 @@
+@@ -0,0 +1,186 @@
 +pragma ComponentBehavior: Bound
 +
 +import QtQuick
@@ -158,12 +228,6 @@
 +    aboveWindows: true
 +    focusable: false
 +    visible: root.shown
-+
-+    Component.onCompleted: ShellState.brightnessWidget = root
-+    Component.onDestruction: {
-+        if (ShellState.brightnessWidget === root)
-+            ShellState.brightnessWidget = null;
-+    }
 +
 +    function open(): void {
 +        const screens = Quickshell.screens;
