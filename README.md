@@ -1,16 +1,17 @@
 # dotfiles
 
 My Hyprland + [Caelestia](https://github.com/caelestia-dots/shell) setup on Arch/Manjaro:
-a dark Material You theme, Lua-based Hyprland config, and a small set of matching
-terminal/GTK/Qt configs.
+a day/night Material You theme, Lua-based Hyprland config, and a small set of
+matching terminal/GTK/Qt configs.
 
 ## What's here
 
 | Path | What |
 | --- | --- |
 | `hypr/` | Hyprland config, written in Lua (`hyprland.lua` + modules, keybinds, rules, scheme) |
-| `caelestia/` | User overrides for the Caelestia dotfiles (`hypr-vars.lua`, `hypr-user.lua`) |
+| `caelestia/` | User overrides and shell patches for Caelestia (`hypr-vars.lua`, `hypr-user.lua`, `*.patch`) |
 | `foot/` | Terminal |
+| `nvim/` | Neovim config (NvChad with the Caelestia colourscheme) |
 | `fish/` | Shell config and functions |
 | `btop/`, `htop/` | System monitors, incl. a `caelestia` btop theme |
 | `fuzzel/` | Launcher |
@@ -21,7 +22,8 @@ terminal/GTK/Qt configs.
 | `cava/`, `fastfetch/`, `lazygit/`, `micro/`, `terminator/` | Small app configs |
 | `starship.toml`, `mimeapps.list` | Prompt and default apps |
 
-`nvim` lives in its own repo and is intentionally not included here.
+`nvim/` is tracked here too; it used to live in the separate
+`Mateus-M-Reis/nvim` repo.
 
 ## Requirements
 
@@ -45,6 +47,14 @@ rsync -a --exclude .git --exclude README.md --exclude .gitignore ~/dotfiles/ ~/.
 cd ~/dotfiles && stow -t ~/.config .
 ```
 
+`foot` includes a file the wallpaper switcher generates at runtime. Create it
+once so the terminal works before the first Hyprland start:
+
+```sh
+mkdir -p ~/.config/foot
+printf '[main]\ninitial-color-theme=dark\n' > ~/.config/foot/theme-default.ini
+```
+
 ## Secrets
 
 API keys are kept out of git. Copy the template and fill it in:
@@ -61,7 +71,9 @@ $EDITOR ~/.config/hypr/hyprland/env.local.lua
 Colours come from Caelestia's Material You scheme generator:
 
 ```sh
-caelestia scheme set -n caelestia -m dark
+# Keep the scheme "dynamic": only then does `caelestia wallpaper -f` re-derive
+# light/dark from the image, which the wallpaper schedule relies on.
+caelestia scheme set -n dynamic -m dark
 caelestia wallpaper -f ~/Pictures/wallpapers/your-wallpaper.jpg
 ```
 
@@ -94,12 +106,63 @@ git switch main
 ## Wallpaper schedule
 
 `hypr/utils/wallpaper-daynight.sh` starts from `execs.lua` and changes the
-wallpaper when the day/night period changes: the first `cv*` image in
-`~/Pictures/wallpapers` from 06:00, `tiger_neon.jpg` from 18:00. It uses
-`caelestia wallpaper -f`, so the whole scheme follows — terminals via
-`sequences.txt`, and nvim via its watch on `scheme.json`. A manual pick stays
-until the next boundary. Override the hours with `DAY_START` / `NIGHT_START`
-(24h clock), or run it once with `--once` / `--dry-run`.
+wallpaper four times a day, alternating two light and two dark periods:
+
+| Slot | Time | Wallpaper | Scheme |
+| --- | --- | --- | --- |
+| morning | 06:00-11:59 | first `cv*` in `~/Pictures/wallpapers` | light |
+| afternoon | 12:00-17:59 | `tiger_neon_cropped_red2.jpg` | light |
+| evening | 18:00-23:59 | `tiger_neon.jpg` | dark |
+| night | 00:00-05:59 | `tiger neon yellow.jpg` | dark |
+
+It uses `caelestia wallpaper -f`, so the whole scheme follows — the bar,
+terminals via `sequences.txt`, and nvim via its watch on `scheme.json`. A manual
+pick stays until the next boundary. Foot follows the slots too: the script
+rewrites `foot/theme-default.ini` for new windows and signals running ones
+(`SIGUSR1` dark, `SIGUSR2` light). Override the boundaries with
+`MORNING_START` / `AFTERNOON_START` / `EVENING_START` (24h clock), or run it once
+with `--once` / `--dry-run`.
+
+## Display controls
+
+`SUPER + SHIFT + B` and the sun button in the bar's status pill, between the
+Wi-Fi and Bluetooth icons, both toggle a **Display** popout attached to the bar
+just like its neighbours. It holds the panel brightness slider and the Night
+light switch described below; drag the slider or scroll over it to change the
+brightness.
+
+This is a local addition to the Caelestia shell, not part of the package:
+`caelestia/display-popout.patch` adds
+`modules/bar/popouts/BrightnessPopout.qml`, registers it, inserts the
+status-pill entry, and registers the `display` global shortcut used by the
+keybind.
+
+## Night light
+
+`hyprsunset` applies the blue-light filter through Hyprland's CTM protocol, so
+it is not baked into screenshots. Its schedule lives in
+`hypr/hyprsunset.conf`: neutral at 06:00, 5000 K from 18:00, and 4000 K from
+21:00. Install it once and relog (or run `hyprsunset &` to test it now):
+
+```sh
+sudo pacman -S hyprsunset
+```
+
+`hypr/hyprland/execs.lua` starts it at login. The Night light switch in the
+Display popout stops or restarts the daemon, and records the choice in
+`~/.local/state/caelestia/nightlight-off`, so “off” survives profile changes
+and logins. That switch is backed by `hypr/utils/nightlight.sh`
+(`on`, `off`, `toggle`, `status`, `resume`).
+
+Manual control:
+
+```sh
+hyprctl hyprsunset temperature 3500
+hyprctl hyprsunset identity   # turn the filter off
+hyprctl hyprsunset reset      # back to the current profile
+hyprctl hyprsunset profile    # print the active profile
+hypr/utils/nightlight.sh off  # stop it, and keep it off
+```
 
 ## Lock screen on ABNT2
 
@@ -111,13 +174,17 @@ real `TextInput`; `QT_IM_MODULE=compose` in `hypr/hyprland/env.lua` then turns
 the dead-key sequence into the composed character (`'` + `a` → `á`).
 
 The local copy shadows `/etc/xdg/quickshell/caelestia` and is 12 MB, so it is
-not tracked here. The tracked patch is `caelestia/lock-compose.patch`. After a
-`caelestia-shell` update, refresh the copy and re-apply it:
+not tracked here. The changes themselves are kept as patches in
+`caelestia/`: `lock-compose.patch` (this section) and
+`display-popout.patch`. After a `caelestia-shell` update, refresh the copy
+and re-apply both:
 
 ```sh
 rm -rf ~/.config/quickshell/caelestia
 cp -a /etc/xdg/quickshell/caelestia ~/.config/quickshell/caelestia
-patch -d ~/.config/quickshell/caelestia -p1 < ~/.config/caelestia/lock-compose.patch
+for p in ~/.config/caelestia/*.patch; do
+    patch -d ~/.config/quickshell/caelestia -p1 < "$p"
+done
 QT_IM_MODULE=compose caelestia shell -r -d
 ```
 

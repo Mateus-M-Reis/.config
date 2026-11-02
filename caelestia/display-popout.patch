@@ -1,0 +1,257 @@
+--- a/modules/Shortcuts.qml
++++ b/modules/Shortcuts.qml
+@@ -108,6 +108,39 @@
+         }
+     }
+ 
++    // qmllint disable unresolved-type
++    CustomShortcut {
++        // qmllint enable unresolved-type
++        name: "display"
++        description: "Toggle display popout"
++        onPressed: {
++            const comps = ShellState.componentsForActive();
++            const icons = comps?.find("taskbarStatusIcons");
++            const popouts = comps?.bar?.popouts;
++            if (!icons || !popouts)
++                return;
++
++            if (popouts.hasCurrent && popouts.currentName === "brightness") {
++                popouts.hasCurrent = false;
++                return;
++            }
++
++            const icon = (() => {
++                const items = icons.items.children;
++                for (let i = 0; i < items.length; i++)
++                    if (items[i].name === "brightness")
++                        return items[i];
++                return null;
++            })();
++            if (!icon)
++                return;
++
++            popouts.currentName = "brightness";
++            popouts.currentCenter = icon.mapToItem(comps.bar, 0, icon.implicitHeight / 2).y;
++            popouts.hasCurrent = true;
++        }
++    }
++
+     IpcHandler {
+         function toggle(drawer: string): void {
+             if (list().split("\n").includes(drawer)) {
+--- a/modules/bar/components/StatusIcons.qml
++++ b/modules/bar/components/StatusIcons.qml
+@@ -61,7 +61,17 @@
+             model: ScriptModel {
+                 id: model
+ 
+-                values: root.Config.bar.statusIcons.values.filter(e => e.enabled)
++                values: {
++                    const entries = root.Config.bar.statusIcons.values.filter(e => e.enabled);
++                    // Local addition: the brightness button sits next to the
++                    // network icon and toggles the floating brightness widget.
++                    const networkIndex = entries.findIndex(e => e.id === "network");
++                    entries.splice(networkIndex < 0 ? 0 : networkIndex + 1, 0, {
++                        id: "brightness",
++                        enabled: true
++                    });
++                    return entries;
++                }
+             }
+ 
+             DelegateChooser {
+@@ -126,6 +136,17 @@
+                         }
+                     }
+                 }
++                DelegateChoice {
++                    roleValue: "brightness"
++                    delegate: EntryWrapper {
++                        MaterialIcon {
++                            text: "wb_sunny"
++                            color: root.colour
++                            fontStyle: Tokens.font.icon.medium
++                            fill: 1
++                        }
++                    }
++                }
+                 DelegateChoice {
+                     roleValue: "bluetooth"
+                     delegate: EntryWrapper {
+--- a/modules/bar/popouts/Content.qml
++++ b/modules/bar/popouts/Content.qml
+@@ -12,6 +12,7 @@
+     id: root
+ 
+     required property PopoutState popouts
++    required property ShellScreen screen
+     readonly property Popout currentPopout: content.children.find(c => c.shouldBeActive) ?? null
+     readonly property Item current: currentPopout?.item ?? null
+ 
+@@ -102,6 +103,13 @@
+             }
+         }
+ 
++        Popout {
++            name: "brightness"
++            sourceComponent: BrightnessPopout {
++                screen: root.screen
++            }
++        }
++
+         Popout {
+             name: "battery"
+             sourceComponent: Battery {}
+--- a/modules/bar/popouts/Wrapper.qml
++++ b/modules/bar/popouts/Wrapper.qml
+@@ -112,6 +112,7 @@
+ 
+         sourceComponent: Content {
+             popouts: popoutState
++            screen: root.screen
+         }
+     }
+ 
+--- /dev/null
++++ b/modules/bar/popouts/BrightnessPopout.qml
+@@ -0,0 +1,139 @@
++pragma ComponentBehavior: Bound
++
++import QtQuick
++import QtQuick.Layouts
++import Quickshell
++import Quickshell.Io
++import Caelestia.Config
++import Caelestia.I18n
++import qs.components
++import qs.components.controls
++import qs.services
++import qs.utils
++
++Item {
++    id: root
++
++    required property ShellScreen screen
++
++    readonly property var monitor: Brightness.getMonitorForScreen(screen)
++    readonly property real step: GlobalConfig.services.brightnessIncrement
++
++    property bool nightLightOn: true
++    property bool nightLightBusy: false
++
++    implicitWidth: Tokens.sizes.bar.audioWidth
++    implicitHeight: layout.implicitHeight + Tokens.padding.medium * 2
++
++    function setNightLight(on: bool): void {
++        nightLightOn = on;
++        nightLightBusy = true;
++        toggleProc.command = ["sh", "-c", `exec "${Paths.home}/.config/hypr/utils/nightlight.sh" ${on ? "on" : "off"}`];
++        toggleProc.running = true;
++    }
++
++    Component.onCompleted: statusProc.running = true
++
++    ColumnLayout {
++        id: layout
++
++        anchors.left: parent.left
++        anchors.right: parent.right
++        anchors.verticalCenter: parent.verticalCenter
++        spacing: Tokens.spacing.small
++
++        RowLayout {
++            Layout.fillWidth: true
++            spacing: Tokens.spacing.small
++
++            MaterialIcon {
++                text: "wb_sunny"
++                font: Tokens.font.icon.medium
++                color: Colours.palette.m3primary
++            }
++
++            StyledText {
++                Layout.fillWidth: true
++                text: Tr.tr("Display")
++                font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
++                color: Colours.palette.m3onSurface
++            }
++
++            StyledText {
++                text: `${Math.round((root.monitor?.brightness ?? 0) * 100)}%`
++                font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
++                color: Colours.palette.m3onSurfaceVariant
++            }
++        }
++
++        CustomMouseArea {
++            Layout.fillWidth: true
++            implicitHeight: Tokens.padding.medium * 3
++
++            onWheel: event => {
++                if (!root.monitor)
++                    return;
++                const delta = event.angleDelta.y > 0 ? root.step : -root.step;
++                root.monitor.setBrightness(root.monitor.brightness + delta);
++            }
++
++            StyledSlider {
++                anchors.left: parent.left
++                anchors.right: parent.right
++                implicitHeight: parent.implicitHeight
++
++                value: root.monitor?.brightness ?? 0
++                onInteraction: v => root.monitor?.setBrightness(v)
++            }
++        }
++
++        RowLayout {
++            Layout.fillWidth: true
++            Layout.topMargin: Tokens.spacing.medium
++            spacing: Tokens.spacing.small
++
++            MaterialIcon {
++                text: "bedtime"
++                font: Tokens.font.icon.medium
++                color: root.nightLightOn ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
++            }
++
++            StyledText {
++                Layout.fillWidth: true
++                text: Tr.tr("Night light")
++                color: Colours.palette.m3onSurface
++            }
++
++            StyledSwitch {
++                id: nightSwitch
++
++                checked: true
++                enabled: !root.nightLightBusy
++                onToggled: root.setNightLight(checked)
++            }
++        }
++    }
++
++    Process {
++        id: statusProc
++
++        command: ["sh", "-c", `exec "${Paths.home}/.config/hypr/utils/nightlight.sh" status`]
++
++        stdout: StdioCollector {
++            onStreamFinished: {
++                const on = text.trim() === "on";
++                root.nightLightOn = on;
++                nightSwitch.checked = on;
++            }
++        }
++    }
++
++    Process {
++        id: toggleProc
++
++        onExited: {
++            root.nightLightBusy = false;
++            statusProc.running = true;
++        }
++    }
++}

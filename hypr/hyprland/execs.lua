@@ -19,9 +19,8 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("gsettings set org.gnome.desktop.interface cursor-theme " .. vars.cursorTheme)
     hl.exec_cmd("gsettings set org.gnome.desktop.interface cursor-size " .. vars.cursorSize)
 
-    -- Location provider and night light
-    hl.exec_cmd("/usr/lib/geoclue-2.0/demos/agent")
-    hl.exec_cmd("sleep 1 && gammastep")
+    -- Blue light filter; respects the switch in the bar's Display popout
+    hl.exec_cmd(home .. "/.config/hypr/utils/nightlight.sh resume")
 
     -- Forward bluetooth media commands to MPRIS
     hl.exec_cmd("mpris-proxy")
@@ -29,7 +28,7 @@ hl.on("hyprland.start", function()
     -- Start shell
     hl.exec_cmd("caelestia shell -d")
 
-    -- Day/night wallpaper: cv* image by day, tiger_neon at night.
+    -- Four-slot wallpaper schedule: light morning/afternoon, dark evening/night.
     -- Runs through `caelestia wallpaper -f`, so the scheme (and nvim) follows.
     hl.exec_cmd("sleep 2 && " .. home .. "/.config/hypr/utils/wallpaper-daynight.sh")
 end)

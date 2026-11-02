@@ -1,21 +1,25 @@
 #!/bin/sh
-# Day/night wallpaper switcher.
+# Four-slot wallpaper switcher.
 #
-# Day   (06:00-17:59): the first wallpaper in ~/Pictures/wallpapers whose name
-#                      starts with "cv" (case-sensitive glob cv*).
-# Night (18:00-05:59): ~/Pictures/wallpapers/tiger_neon.jpg
+# Slots (24h clock):
+#   morning   06:00-11:59  first cv* wallpaper in ~/Pictures/wallpapers (light)
+#   afternoon 12:00-17:59  tiger_neon_cropped_red2.jpg               (light)
+#   evening   18:00-23:59  tiger_neon.jpg                            (dark)
+#   night     00:00-05:59  "tiger neon yellow.jpg"                   (dark)
 #
-# Switching goes through `caelestia wallpaper -f`, so the whole scheme is
-# regenerated with it: scheme.json, sequences.txt (terminals), the Caelestia
-# templates and the Hyprland scheme. Terminals pick the new palette up live via
-# OSC sequences; nvim watches scheme.json and re-applies colors/caelestia.lua.
+# So the scheme goes light, light, dark, dark across the day. Switching goes
+# through `caelestia wallpaper -f`, which derives the mode from the image, so
+# the whole scheme follows: scheme.json, sequences.txt (terminals), the
+# Caelestia templates and the Hyprland scheme. Terminals pick the new palette up
+# live via OSC sequences; nvim watches scheme.json and re-applies
+# colors/caelestia.lua.
 #
-# Foot is kept in step too: light colours with a white background by day, dark
-# colours with a black background at night. New windows read the generated
-# include file; running ones are switched with SIGUSR2/SIGUSR1.
+# Foot is kept in step too: light colours for the two day slots, dark for the
+# two night slots. New windows read the generated include file; running ones are
+# switched with SIGUSR2/SIGUSR1.
 #
-# The wallpaper is only changed when the day/night period changes, so a manual
-# pick stays put until the next boundary. State lives in
+# The wallpaper is only changed when the slot changes, so a manual pick stays
+# put until the next boundary. State lives in
 # ~/.local/state/caelestia/wallpaper-daynight.{period,log}.
 #
 # Started once per Hyprland session from hyprland/execs.lua; the lock keeps a
@@ -25,11 +29,14 @@
 
 set -u
 
-DAY_START=${DAY_START:-6}    # 24h clock, inclusive
-NIGHT_START=${NIGHT_START:-18} # 24h clock, exclusive
+MORNING_START=${MORNING_START:-6}     # 24h clock, inclusive
+AFTERNOON_START=${AFTERNOON_START:-12} # 24h clock, inclusive
+EVENING_START=${EVENING_START:-18}    # 24h clock, inclusive
 WALL_DIR=${WALL_DIR:-"$HOME/Pictures/wallpapers"}
-DAY_GLOB=${DAY_GLOB:-cv*}    # first match wins
-NIGHT_WALL=${NIGHT_WALL:-$WALL_DIR/tiger_neon.jpg}
+MORNING_GLOB=${MORNING_GLOB:-cv*}     # first match wins
+AFTERNOON_WALL=${AFTERNOON_WALL:-$WALL_DIR/tiger_neon_cropped_red2.jpg}
+EVENING_WALL=${EVENING_WALL:-$WALL_DIR/tiger_neon.jpg}
+NIGHT_WALL=${NIGHT_WALL:-$WALL_DIR/tiger neon yellow.jpg}
 
 STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/caelestia
 PERIOD_FILE=$STATE_DIR/wallpaper-daynight.period
@@ -52,6 +59,11 @@ done
 log() {
     [ "$DRY" = 1 ] && return 0
     mkdir -p "$STATE_DIR" 2>/dev/null || true
+    # Keep the log from growing forever, including while the daemon retries a
+    # failing switch every minute.
+    if [ -f "$LOG_FILE" ] && [ "$(wc -c <"$LOG_FILE" 2>/dev/null || echo 0)" -gt 131072 ]; then
+        mv -f "$LOG_FILE" "$LOG_FILE.1" 2>/dev/null || true
+    fi
     printf '%s %s\n' "$(date -Is)" "$*" >>"$LOG_FILE" 2>/dev/null || true
 }
 
@@ -59,8 +71,8 @@ log() {
 # the dark one. The signals also work on foot --server and footclient.
 foot_theme() {
     case $1 in
-        day)   ft=light; fsig=USR2 ;;
-        night) ft=dark;  fsig=USR1 ;;
+        morning|afternoon) ft=light; fsig=USR2 ;;
+        evening|night)     ft=dark;  fsig=USR1 ;;
         *) return 0 ;;
     esac
 
@@ -82,8 +94,8 @@ foot_theme() {
     log "foot theme=$ft"
 }
 
-day_wall() {
-    for f in "$WALL_DIR"/$DAY_GLOB; do
+morning_wall() {
+    for f in "$WALL_DIR"/$MORNING_GLOB; do
         [ -f "$f" ] && { printf '%s\n' "$f"; return 0; }
     done
     return 1
@@ -93,18 +105,37 @@ period() {
     h=$(date +%H)
     h=${h#0}                  # avoid octal-ish "08" in tests
     [ -z "$h" ] && h=0
-    if [ "$h" -ge "$DAY_START" ] && [ "$h" -lt "$NIGHT_START" ]; then
-        echo day
+    if [ "$h" -ge "$EVENING_START" ]; then
+        echo evening
+    elif [ "$h" -ge "$AFTERNOON_START" ]; then
+        echo afternoon
+    elif [ "$h" -ge "$MORNING_START" ]; then
+        echo morning
     else
         echo night
     fi
 }
 
 wall_for() {
-    if [ "$1" = day ]; then
-        day_wall
-    else
-        [ -f "$NIGHT_WALL" ] && printf '%s\n' "$NIGHT_WALL"
+    case $1 in
+        morning) morning_wall ;;
+        afternoon) [ -f "$AFTERNOON_WALL" ] && printf '%s\n' "$AFTERNOON_WALL" ;;
+        evening) [ -f "$EVENING_WALL" ] && printf '%s\n' "$EVENING_WALL" ;;
+        night) [ -f "$NIGHT_WALL" ] && printf '%s\n' "$NIGHT_WALL" ;;
+        *) return 1 ;;
+    esac
+}
+
+# Caelestia only re-derives light/dark from the wallpaper when the scheme is
+# "dynamic". A named scheme pins the mode and silently defeats the schedule.
+scheme_guard() {
+    name=$(caelestia scheme get -n 2>/dev/null || true)
+    if [ -n "$name" ] && [ "$name" != dynamic ]; then
+        if [ "$DRY" = 1 ]; then
+            printf 'warning: scheme %s is not dynamic; mode will not follow the wallpaper\n' "$name"
+        else
+            log "warning: scheme $name is not dynamic; mode will not follow the wallpaper"
+        fi
     fi
 }
 
@@ -113,6 +144,9 @@ check() {
     prev=$(cat "$PERIOD_FILE" 2>/dev/null || true)
     changed=0
     [ "$p" != "$prev" ] && changed=1
+    if [ "$changed" = 1 ]; then
+        scheme_guard
+    fi
 
     # Foot is independent of the wallpaper: sync it on start and on a period
     # change, so a manual theme toggle survives until the next boundary.
@@ -123,6 +157,9 @@ check() {
     fi
 
     if ! w=$(wall_for "$p"); then
+        if [ "$DRY" = 1 ]; then
+            printf 'no wallpaper found for period %s\n' "$p"
+        fi
         log "no wallpaper found for period $p"
         return 0
     fi
@@ -157,14 +194,16 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
     mkdir "$LOCK_DIR" 2>/dev/null || exit 1
 fi
 printf '%s\n' $$ >"$LOCK_DIR/pid" 2>/dev/null
-trap 'rm -rf "$LOCK_DIR"' EXIT INT TERM HUP
-
-# Keep the log from growing forever
-if [ -f "$LOG_FILE" ] && [ "$(wc -c <"$LOG_FILE" 2>/dev/null || echo 0)" -gt 131072 ]; then
-    mv -f "$LOG_FILE" "$LOG_FILE.1" 2>/dev/null || true
-fi
+SLEEP_PID=
+trap 'rm -rf "$LOCK_DIR"; [ -n "$SLEEP_PID" ] && kill "$SLEEP_PID" 2>/dev/null' EXIT
+trap 'exit 0' INT TERM HUP
 
 while :; do
     check
-    sleep 60
+    # Backgrounding the sleep lets the signal traps run immediately instead of
+    # waiting up to a minute for it to return.
+    sleep 60 &
+    SLEEP_PID=$!
+    wait "$SLEEP_PID"
+    SLEEP_PID=
 done
