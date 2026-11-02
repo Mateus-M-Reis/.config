@@ -65,6 +65,26 @@ caelestia scheme set -n caelestia -m dark
 caelestia wallpaper -f ~/Pictures/wallpapers/your-wallpaper.jpg
 ```
 
+## Lock screen on ABNT2
+
+Caelestia's lock screen builds the password from raw key events, so XKB dead
+keys (`' " ^ ~`) are dropped before PAM sees them and an accented password can
+never unlock. `~/.config/quickshell/caelestia/` is a local copy of the packaged
+shell with `modules/lock/center/PasswordInput.qml` patched to type through a
+real `TextInput`; `QT_IM_MODULE=compose` in `hypr/hyprland/env.lua` then turns
+the dead-key sequence into the composed character (`'` + `a` → `á`).
+
+The local copy shadows `/etc/xdg/quickshell/caelestia` and is 12 MB, so it is
+not tracked here. The tracked patch is `caelestia/lock-compose.patch`. After a
+`caelestia-shell` update, refresh the copy and re-apply it:
+
+```sh
+rm -rf ~/.config/quickshell/caelestia
+cp -a /etc/xdg/quickshell/caelestia ~/.config/quickshell/caelestia
+patch -d ~/.config/quickshell/caelestia -p1 < ~/.config/caelestia/lock-compose.patch
+QT_IM_MODULE=compose caelestia shell -r -d
+```
+
 ---
 
 Personal configs, borrow whatever is useful.

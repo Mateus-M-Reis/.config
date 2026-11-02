@@ -8,6 +8,9 @@ hl.env("XCURSOR_THEME", vars.cursorTheme)
 hl.env("XCURSOR_SIZE", vars.cursorSize)
 
 -- Toolkit backends
+-- Compose dead keys (ABNT2: ' " ^ ~) in Qt apps. The Caelestia lock screen
+-- feeds a real TextInput, so this is what turns dead-key sequences into á/ã.
+hl.env("QT_IM_MODULE", "compose")
 hl.env("GDK_BACKEND", "wayland,x11")
 hl.env("QT_QPA_PLATFORM", "wayland;xcb")
 hl.env("SDL_VIDEODRIVER", "wayland,x11,windows")
