@@ -65,6 +65,16 @@ caelestia scheme set -n caelestia -m dark
 caelestia wallpaper -f ~/Pictures/wallpapers/your-wallpaper.jpg
 ```
 
+## Wallpaper schedule
+
+`hypr/utils/wallpaper-daynight.sh` starts from `execs.lua` and changes the
+wallpaper when the day/night period changes: the first `cv*` image in
+`~/Pictures/wallpapers` from 06:00, `tiger_neon.jpg` from 18:00. It uses
+`caelestia wallpaper -f`, so the whole scheme follows — terminals via
+`sequences.txt`, and nvim via its watch on `scheme.json`. A manual pick stays
+until the next boundary. Override the hours with `DAY_START` / `NIGHT_START`
+(24h clock), or run it once with `--once` / `--dry-run`.
+
 ## Lock screen on ABNT2
 
 Caelestia's lock screen builds the password from raw key events, so XKB dead

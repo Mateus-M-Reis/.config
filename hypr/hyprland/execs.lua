@@ -1,5 +1,6 @@
 local vars = require("variables")
 local fn   = require("utils.functions")
+local home = os.getenv("HOME")
 
 hl.on("hyprland.start", function()
     -- Keyring and auth
@@ -27,6 +28,10 @@ hl.on("hyprland.start", function()
 
     -- Start shell
     hl.exec_cmd("caelestia shell -d")
+
+    -- Day/night wallpaper: cv* image by day, tiger_neon at night.
+    -- Runs through `caelestia wallpaper -f`, so the scheme (and nvim) follows.
+    hl.exec_cmd("sleep 2 && " .. home .. "/.config/hypr/utils/wallpaper-daynight.sh")
 end)
 
 -- Resizer listeners

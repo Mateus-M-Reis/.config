@@ -27,5 +27,8 @@
 !/starship.toml
 !/mimeapps.list
 
+# Generated at runtime by hypr/utils/wallpaper-daynight.sh.
+/foot/theme-default.ini
+
 # Secrets must never be committed.
 /hypr/hyprland/env.local.lua
