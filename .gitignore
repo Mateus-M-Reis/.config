@@ -22,9 +22,6 @@
 !/fastfetch/
 !/htop/
 !/lazygit/
-!/mc/
-/mc/*
-!/mc/ini
 !/micro/
 !/terminator/
 !/starship.toml

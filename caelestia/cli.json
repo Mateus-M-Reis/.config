@@ -1,5 +1,0 @@
-{
-    "wallpaper": {
-        "postHook": "\"$HOME/.config/hypr/utils/matte-black.py\" --quiet"
-    }
-}
