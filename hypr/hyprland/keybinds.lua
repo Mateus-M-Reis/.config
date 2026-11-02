@@ -188,6 +188,7 @@ create_bind("XF86Search", hl.dsp.global("caelestia:launcher"))
 -- Brightness
 create_bind("XF86MonBrightnessUp", hl.dsp.global("caelestia:brightnessUp"), locked)
 create_bind("XF86MonBrightnessDown", hl.dsp.global("caelestia:brightnessDown"), locked)
+create_bind("SUPER + SHIFT + B", hl.dsp.exec_cmd("caelestia shell brightnessWidget toggle"))
 
 -- Media
 create_bind({ vars.kbMediaToggle, "XF86AudioPlay", "XF86AudioPause" }, hl.dsp.global("caelestia:mediaToggle"), locked)

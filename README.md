@@ -9,7 +9,7 @@ matching terminal/GTK/Qt configs.
 | Path | What |
 | --- | --- |
 | `hypr/` | Hyprland config, written in Lua (`hyprland.lua` + modules, keybinds, rules, scheme) |
-| `caelestia/` | User overrides for the Caelestia dotfiles (`hypr-vars.lua`, `hypr-user.lua`) |
+| `caelestia/` | User overrides and shell patches for Caelestia (`hypr-vars.lua`, `hypr-user.lua`, `*.patch`) |
 | `foot/` | Terminal |
 | `nvim/` | Neovim config (NvChad with the Caelestia colourscheme) |
 | `fish/` | Shell config and functions |
@@ -97,6 +97,18 @@ rewrites `foot/theme-default.ini` for new windows and signals running ones
 `MORNING_START` / `AFTERNOON_START` / `EVENING_START` (24h clock), or run it once
 with `--once` / `--dry-run`.
 
+## Brightness widget
+
+`SUPER + SHIFT + B` toggles a floating brightness card in the top-right corner
+of the focused monitor (equivalently
+`caelestia shell brightnessWidget toggle`). Drag the card to move it, drag the
+slider or scroll over the card to change the panel brightness. The IPC target
+also exposes `open`, `close` and `status`.
+
+This is a local addition to the Caelestia shell, not part of the package:
+`caelestia/brightness-widget.patch` adds
+`modules/widgets/BrightnessWidget.qml` and registers it in `shell.qml`.
+
 ## Lock screen on ABNT2
 
 Caelestia's lock screen builds the password from raw key events, so XKB dead
@@ -107,13 +119,17 @@ real `TextInput`; `QT_IM_MODULE=compose` in `hypr/hyprland/env.lua` then turns
 the dead-key sequence into the composed character (`'` + `a` → `á`).
 
 The local copy shadows `/etc/xdg/quickshell/caelestia` and is 12 MB, so it is
-not tracked here. The tracked patch is `caelestia/lock-compose.patch`. After a
-`caelestia-shell` update, refresh the copy and re-apply it:
+not tracked here. The changes themselves are kept as patches in
+`caelestia/`: `lock-compose.patch` (this section) and
+`brightness-widget.patch`. After a `caelestia-shell` update, refresh the copy
+and re-apply both:
 
 ```sh
 rm -rf ~/.config/quickshell/caelestia
 cp -a /etc/xdg/quickshell/caelestia ~/.config/quickshell/caelestia
-patch -d ~/.config/quickshell/caelestia -p1 < ~/.config/caelestia/lock-compose.patch
+for p in ~/.config/caelestia/*.patch; do
+    patch -d ~/.config/quickshell/caelestia -p1 < "$p"
+done
 QT_IM_MODULE=compose caelestia shell -r -d
 ```
 
