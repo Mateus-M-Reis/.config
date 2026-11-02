@@ -6,7 +6,7 @@ return {
     ------------------
 
     -- Apps
-    terminal                   = "xfce4-terminal",
+    terminal                   = "foot",
     browser                    = "firefox",
     editor                     = "nvim",
     fileExplorer               = "thunar",

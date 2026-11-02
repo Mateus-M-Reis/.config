@@ -17,6 +17,9 @@ hl.env("SDL_VIDEODRIVER", "wayland,x11,windows")
 hl.env("CLUTTER_BACKEND", "wayland")
 hl.env("ELECTRON_OZONE_PLATFORM_HINT", "auto")
 
+-- Default terminal, for apps and scripts that honour $TERMINAL.
+hl.env("TERMINAL", vars.terminal)
+
 -- XDG specifications
 hl.env("XDG_CURRENT_DESKTOP", "Hyprland")
 hl.env("XDG_SESSION_TYPE", "wayland")

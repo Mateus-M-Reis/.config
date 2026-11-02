@@ -1,4 +1,5 @@
 [Default Applications]
+x-scheme-handler/terminal=foot.desktop;
 application/octet-stream=mousepad.desktop
 application/pdf=qpdfview.desktop
 application/pdf=qpdfview.desktop
