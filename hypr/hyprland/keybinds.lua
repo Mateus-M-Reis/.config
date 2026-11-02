@@ -99,7 +99,7 @@ create_bind(vars.kbNextWsGroup, hl.dsp.focus({ workspace = "+10" }), repeating_u
 
 -- Move window to workspace -1/+1
 create_bind(vars.kbMoveWinToWsNext, hl.dsp.window.move({ workspace = "+1" }), repeating_unless_mouse)
-create_bind(vars.kbMoveWinToWsPrev, hl.dsp.window.move({ workspace = "-1" }), repeating_unless_mouse)
+create_bind(vars.kbMoveWinToWsPrev, fn.move_window_prev(), repeating_unless_mouse)
 
 -- Move window to/from special workspace
 create_bind(vars.kbMoveWinToWsSpecial, hl.dsp.window.move({ workspace = "special:special" }))

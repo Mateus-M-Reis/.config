@@ -22,6 +22,23 @@ local function wsaction(action, range, i)
     end
 end
 
+local function move_window_prev()
+    return function()
+        local activews = hl.get_active_workspace()
+        if not activews then return end
+
+        local id = activews.id
+        if type(id) ~= "number" or id < 1 then
+            return hl.dispatch(hl.dsp.window.move({ workspace = "-1" }))
+        end
+
+        -- A relative -1 is clamped to a no-op on workspace 1 (there is no
+        -- workspace 0).  Wrap inside the 10-workspace group instead, so
+        -- "move window to previous workspace" always does something.
+        return hl.dispatch(hl.dsp.window.move({ workspace = id > 1 and id - 1 or 10 }))
+    end
+end
+
 local function resize_by_screen(x, y)
     local screen = hl.get_active_monitor()
     if screen and type(screen.width) == "number" and type(screen.height) == "number" then
@@ -290,6 +307,7 @@ return {
     resize_by_screen     = resize_by_screen,
     resize_active_window = resize_active_window,
     wsaction             = wsaction,
+    move_window_prev     = move_window_prev,
     move_actions         = move_actions,
     toggle               = toggle,
 }

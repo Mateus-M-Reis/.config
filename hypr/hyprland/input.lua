@@ -2,7 +2,11 @@ local vars = require("variables")
 
 hl.config({
     input = {
-        kb_layout          = "br",
+        -- Keep US as a second layout: the Caelestia lock screen reads raw key
+        -- text, so ABNT2 dead keys ( ' " ^ ~ ) cannot be typed into it.  Alt+Shift
+        -- switches layouts even while the session is locked.
+        kb_layout          = "br,us",
+        kb_options         = "grp:alt_shift_toggle",
         numlock_by_default = false,
         repeat_delay       = 250,
         repeat_rate        = 35,
