@@ -19,8 +19,8 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("gsettings set org.gnome.desktop.interface cursor-theme " .. vars.cursorTheme)
     hl.exec_cmd("gsettings set org.gnome.desktop.interface cursor-size " .. vars.cursorSize)
 
-    -- Blue light filter; the sunset/sunrise profiles live in hyprsunset.conf
-    hl.exec_cmd("command -v hyprsunset >/dev/null && hyprsunset")
+    -- Blue light filter; respects the switch in the bar's Display popout
+    hl.exec_cmd(home .. "/.config/hypr/utils/nightlight.sh resume")
 
     -- Forward bluetooth media commands to MPRIS
     hl.exec_cmd("mpris-proxy")

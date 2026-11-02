@@ -97,14 +97,15 @@ rewrites `foot/theme-default.ini` for new windows and signals running ones
 `MORNING_START` / `AFTERNOON_START` / `EVENING_START` (24h clock), or run it once
 with `--once` / `--dry-run`.
 
-## Brightness widget
+## Display controls
 
 `SUPER + SHIFT + B` toggles a floating brightness card in the top-right corner
 of the focused monitor (equivalently `caelestia shell brightnessWidget toggle`).
 The sun button in the bar's status pill, between the Wi-Fi and Bluetooth icons,
-opens a brightness popout attached to the bar instead, just like its neighbours.
+opens a **Display** popout attached to the bar instead, just like its neighbours.
 Both show the current level; drag the slider or scroll over it to change the
-panel brightness. The IPC target also exposes `open`, `close` and `status`.
+panel brightness. The popout also has the Night light switch described below.
+The IPC target exposes `open`, `close` and `status`.
 
 This is a local addition to the Caelestia shell, not part of the package:
 `caelestia/brightness-widget.patch` adds
@@ -123,13 +124,20 @@ it is not baked into screenshots. Its schedule lives in
 sudo pacman -S hyprsunset
 ```
 
-`hypr/hyprland/execs.lua` starts it at login. Manual control:
+`hypr/hyprland/execs.lua` starts it at login. The Night light switch in the
+Display popout stops or restarts the daemon, and records the choice in
+`~/.local/state/caelestia/nightlight-off`, so “off” survives profile changes
+and logins. That switch is backed by `hypr/utils/nightlight.sh`
+(`on`, `off`, `toggle`, `status`, `resume`).
+
+Manual control:
 
 ```sh
 hyprctl hyprsunset temperature 3500
 hyprctl hyprsunset identity   # turn the filter off
 hyprctl hyprsunset reset      # back to the current profile
 hyprctl hyprsunset profile    # print the active profile
+hypr/utils/nightlight.sh off  # stop it, and keep it off
 ```
 
 ## Lock screen on ABNT2
