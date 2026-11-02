@@ -112,6 +112,26 @@ This is a local addition to the Caelestia shell, not part of the package:
 `modules/bar/popouts/BrightnessPopout.qml`, registers them, and inserts the
 status-pill entry next to the network icon.
 
+## Night light
+
+`hyprsunset` applies the blue-light filter through Hyprland's CTM protocol, so
+it is not baked into screenshots. Its schedule lives in
+`hypr/hyprsunset.conf`: neutral at 06:00, 5000 K from 18:00, and 4000 K from
+21:00. Install it once and relog (or run `hyprsunset &` to test it now):
+
+```sh
+sudo pacman -S hyprsunset
+```
+
+`hypr/hyprland/execs.lua` starts it at login. Manual control:
+
+```sh
+hyprctl hyprsunset temperature 3500
+hyprctl hyprsunset identity   # turn the filter off
+hyprctl hyprsunset reset      # back to the current profile
+hyprctl hyprsunset profile    # print the active profile
+```
+
 ## Lock screen on ABNT2
 
 Caelestia's lock screen builds the password from raw key events, so XKB dead
