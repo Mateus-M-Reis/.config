@@ -6,9 +6,9 @@ return {
     ------------------
 
     -- Apps
-    terminal                   = "foot",
+    terminal                   = "xfce4-terminal",
     browser                    = "firefox",
-    editor                     = "codium",
+    editor                     = "nvim",
     fileExplorer               = "thunar",
     audioSettings              = "pwvucontrol",
 

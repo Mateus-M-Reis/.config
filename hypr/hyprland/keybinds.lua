@@ -160,7 +160,8 @@ create_bind(vars.kbTodoWs, fn.toggle("todo"))
 -- Apps
 create_bind(vars.kbTerminal, hl.dsp.exec_cmd(vars.terminal))
 create_bind(vars.kbBrowser, hl.dsp.exec_cmd(vars.browser))
-create_bind(vars.kbEditor, hl.dsp.exec_cmd(vars.editor))
+-- The editor is a TUI (nvim), and Hyprland's exec has no tty, so it needs a terminal to attach to.
+create_bind(vars.kbEditor, hl.dsp.exec_cmd(vars.terminal .. " -x " .. vars.editor))
 create_bind(vars.kbFileExplorer, hl.dsp.exec_cmd(vars.fileExplorer))
 create_bind(vars.kbAudioSettings, hl.dsp.exec_cmd(vars.audioSettings))
 
