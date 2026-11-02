@@ -161,9 +161,15 @@ create_bind(vars.kbTodoWs, fn.toggle("todo"))
 create_bind(vars.kbTerminal, hl.dsp.exec_cmd(vars.terminal))
 create_bind(vars.kbBrowser, hl.dsp.exec_cmd(vars.browser))
 -- The editor is a TUI (nvim), and Hyprland's exec has no tty, so it needs a terminal to attach to.
-create_bind(vars.kbEditor, hl.dsp.exec_cmd(vars.terminal .. " -x " .. vars.editor))
+-- `-e` is accepted by both foot (ignored, command is positional) and xfce4-terminal.
+create_bind(vars.kbEditor, hl.dsp.exec_cmd(vars.terminal .. " -e " .. vars.editor))
 create_bind(vars.kbFileExplorer, hl.dsp.exec_cmd(vars.fileExplorer))
 create_bind(vars.kbAudioSettings, hl.dsp.exec_cmd(vars.audioSettings))
+
+-- Conventional aliases for the same apps
+create_bind("SUPER + Return", hl.dsp.exec_cmd(vars.terminal))
+create_bind("SUPER + B", hl.dsp.exec_cmd(vars.browser))
+create_bind("XF86Calculator", hl.dsp.exec_cmd("galculator"))
 
 -- Utilities
 create_bind(vars.kbScreenshot, hl.dsp.exec_cmd("caelestia screenshot"), locked)
@@ -173,6 +179,11 @@ create_bind(vars.kbRecord, hl.dsp.exec_cmd("caelestia record"))
 create_bind(vars.kbRecordSound, hl.dsp.exec_cmd("caelestia record -s"))
 create_bind(vars.kbRecordRegion, hl.dsp.exec_cmd("caelestia record -r"))
 create_bind(vars.kbColorPicker, hl.dsp.exec_cmd("hyprpicker -a"))
+
+-- Handy extras
+create_bind("SUPER + SHIFT + R", hl.dsp.exec_cmd("hyprctl reload"))
+create_bind("SUPER + SHIFT + 4", hl.dsp.exec_cmd("caelestia screenshot -r"))
+create_bind("XF86Search", hl.dsp.global("caelestia:launcher"))
 
 -- Brightness
 create_bind("XF86MonBrightnessUp", hl.dsp.global("caelestia:brightnessUp"), locked)
