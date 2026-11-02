@@ -11,6 +11,7 @@ matching terminal/GTK/Qt configs.
 | `hypr/` | Hyprland config, written in Lua (`hyprland.lua` + modules, keybinds, rules, scheme) |
 | `caelestia/` | User overrides for the Caelestia dotfiles (`hypr-vars.lua`, `hypr-user.lua`) |
 | `foot/` | Terminal |
+| `nvim/` | Neovim config (NvChad with the Caelestia colourscheme) |
 | `fish/` | Shell config and functions |
 | `btop/`, `htop/` | System monitors, incl. a `caelestia` btop theme |
 | `fuzzel/` | Launcher |
@@ -21,7 +22,8 @@ matching terminal/GTK/Qt configs.
 | `cava/`, `fastfetch/`, `lazygit/`, `micro/`, `terminator/` | Small app configs |
 | `starship.toml`, `mimeapps.list` | Prompt and default apps |
 
-`nvim` lives in its own repo and is intentionally not included here.
+`nvim/` is tracked here too; it used to live in the separate
+`Mateus-M-Reis/nvim` repo.
 
 ## Requirements
 
