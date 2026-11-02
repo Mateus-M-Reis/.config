@@ -59,6 +59,11 @@ done
 log() {
     [ "$DRY" = 1 ] && return 0
     mkdir -p "$STATE_DIR" 2>/dev/null || true
+    # Keep the log from growing forever, including while the daemon retries a
+    # failing switch every minute.
+    if [ -f "$LOG_FILE" ] && [ "$(wc -c <"$LOG_FILE" 2>/dev/null || echo 0)" -gt 131072 ]; then
+        mv -f "$LOG_FILE" "$LOG_FILE.1" 2>/dev/null || true
+    fi
     printf '%s %s\n' "$(date -Is)" "$*" >>"$LOG_FILE" 2>/dev/null || true
 }
 
@@ -121,11 +126,27 @@ wall_for() {
     esac
 }
 
+# Caelestia only re-derives light/dark from the wallpaper when the scheme is
+# "dynamic". A named scheme pins the mode and silently defeats the schedule.
+scheme_guard() {
+    name=$(caelestia scheme get -n 2>/dev/null || true)
+    if [ -n "$name" ] && [ "$name" != dynamic ]; then
+        if [ "$DRY" = 1 ]; then
+            printf 'warning: scheme %s is not dynamic; mode will not follow the wallpaper\n' "$name"
+        else
+            log "warning: scheme $name is not dynamic; mode will not follow the wallpaper"
+        fi
+    fi
+}
+
 check() {
     p=$(period)
     prev=$(cat "$PERIOD_FILE" 2>/dev/null || true)
     changed=0
     [ "$p" != "$prev" ] && changed=1
+    if [ "$changed" = 1 ]; then
+        scheme_guard
+    fi
 
     # Foot is independent of the wallpaper: sync it on start and on a period
     # change, so a manual theme toggle survives until the next boundary.
@@ -136,6 +157,9 @@ check() {
     fi
 
     if ! w=$(wall_for "$p"); then
+        if [ "$DRY" = 1 ]; then
+            printf 'no wallpaper found for period %s\n' "$p"
+        fi
         log "no wallpaper found for period $p"
         return 0
     fi
@@ -170,14 +194,16 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
     mkdir "$LOCK_DIR" 2>/dev/null || exit 1
 fi
 printf '%s\n' $$ >"$LOCK_DIR/pid" 2>/dev/null
-trap 'rm -rf "$LOCK_DIR"' EXIT INT TERM HUP
-
-# Keep the log from growing forever
-if [ -f "$LOG_FILE" ] && [ "$(wc -c <"$LOG_FILE" 2>/dev/null || echo 0)" -gt 131072 ]; then
-    mv -f "$LOG_FILE" "$LOG_FILE.1" 2>/dev/null || true
-fi
+SLEEP_PID=
+trap 'rm -rf "$LOCK_DIR"; [ -n "$SLEEP_PID" ] && kill "$SLEEP_PID" 2>/dev/null' EXIT
+trap 'exit 0' INT TERM HUP
 
 while :; do
     check
-    sleep 60
+    # Backgrounding the sleep lets the signal traps run immediately instead of
+    # waiting up to a minute for it to return.
+    sleep 60 &
+    SLEEP_PID=$!
+    wait "$SLEEP_PID"
+    SLEEP_PID=
 done

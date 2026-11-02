@@ -1,8 +1,8 @@
 # dotfiles
 
 My Hyprland + [Caelestia](https://github.com/caelestia-dots/shell) setup on Arch/Manjaro:
-a dark Material You theme, Lua-based Hyprland config, and a small set of matching
-terminal/GTK/Qt configs.
+a day/night Material You theme, Lua-based Hyprland config, and a small set of
+matching terminal/GTK/Qt configs.
 
 ## What's here
 
@@ -45,6 +45,14 @@ rsync -a --exclude .git --exclude README.md --exclude .gitignore ~/dotfiles/ ~/.
 cd ~/dotfiles && stow -t ~/.config .
 ```
 
+`foot` includes a file the wallpaper switcher generates at runtime. Create it
+once so the terminal works before the first Hyprland start:
+
+```sh
+mkdir -p ~/.config/foot
+printf '[main]\ninitial-color-theme=dark\n' > ~/.config/foot/theme-default.ini
+```
+
 ## Secrets
 
 API keys are kept out of git. Copy the template and fill it in:
@@ -61,7 +69,9 @@ $EDITOR ~/.config/hypr/hyprland/env.local.lua
 Colours come from Caelestia's Material You scheme generator:
 
 ```sh
-caelestia scheme set -n caelestia -m dark
+# Keep the scheme "dynamic": only then does `caelestia wallpaper -f` re-derive
+# light/dark from the image, which the wallpaper schedule relies on.
+caelestia scheme set -n dynamic -m dark
 caelestia wallpaper -f ~/Pictures/wallpapers/your-wallpaper.jpg
 ```
 
@@ -79,7 +89,9 @@ wallpaper four times a day, alternating two light and two dark periods:
 
 It uses `caelestia wallpaper -f`, so the whole scheme follows — the bar,
 terminals via `sequences.txt`, and nvim via its watch on `scheme.json`. A manual
-pick stays until the next boundary. Override the boundaries with
+pick stays until the next boundary. Foot follows the slots too: the script
+rewrites `foot/theme-default.ini` for new windows and signals running ones
+(`SIGUSR1` dark, `SIGUSR2` light). Override the boundaries with
 `MORNING_START` / `AFTERNOON_START` / `EVENING_START` (24h clock), or run it once
 with `--once` / `--dry-run`.
 
