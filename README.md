@@ -18,7 +18,7 @@ terminal/GTK/Qt configs.
 | `qt5ct/`, `Kvantum/` | Qt styling |
 | `Thunar/` | File manager, custom actions |
 | `autostart/` | XDG autostart entries |
-| `cava/`, `fastfetch/`, `lazygit/`, `micro/`, `terminator/` | Small app configs |
+| `cava/`, `fastfetch/`, `lazygit/`, `mc/`, `micro/`, `terminator/` | Small app configs |
 | `starship.toml`, `mimeapps.list` | Prompt and default apps |
 
 `nvim` lives in its own repo and is intentionally not included here.
@@ -76,6 +76,11 @@ apps and nvim all go black. `caelestia/cli.json` runs it again after every
 ```sh
 hypr/utils/matte-black.py --reload   # re-apply, including Hyprland borders
 ```
+
+Terminal apps follow the same background: foot is pinned to the matte ramp,
+btop/htop/cava/fuzzel and GTK use the generated templates, nvim watches
+`scheme.json`, and mc uses the `nicedark` ANSI skin. Apps that were already
+running when the palette changed keep their old colours until restarted.
 
 Back to the wallpaper-derived scheme:
 
