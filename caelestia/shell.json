@@ -1,4 +1,9 @@
 {
+    "appearance": {
+        "transparency": {
+            "enabled": false
+        }
+    },
     "general": {
         "idle": {
             "timeouts": [

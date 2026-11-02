@@ -65,6 +65,25 @@ caelestia scheme set -n caelestia -m dark
 caelestia wallpaper -f ~/Pictures/wallpapers/your-wallpaper.jpg
 ```
 
+### Matte black
+
+The `matte-black` branch pins a fixed neutral scheme instead of following the
+wallpaper: `hypr/utils/matte-black.py` feeds `hypr/scheme/matte-black.json`
+through Caelestia's templates and saves it as the current scheme, so the bar,
+apps and nvim all go black. `caelestia/cli.json` runs it again after every
+`caelestia wallpaper` call, which keeps the UI black across wallpaper changes.
+
+```sh
+hypr/utils/matte-black.py --reload   # re-apply, including Hyprland borders
+```
+
+Back to the wallpaper-derived scheme:
+
+```sh
+git switch main
+caelestia wallpaper -f "$(caelestia wallpaper)"
+```
+
 ## Wallpaper schedule
 
 `hypr/utils/wallpaper-daynight.sh` starts from `execs.lua` and changes the
