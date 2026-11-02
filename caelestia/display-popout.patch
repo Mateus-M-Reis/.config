@@ -1,21 +1,45 @@
---- a/shell.qml
-+++ b/shell.qml
-@@ -9,6 +9,7 @@
- import "modules/background"
- import "modules/areapicker"
- import "modules/lock"
-+import "modules/widgets"
- import QtQuick
- import Quickshell
- import qs.services
-@@ -35,6 +36,7 @@
+--- a/modules/Shortcuts.qml
++++ b/modules/Shortcuts.qml
+@@ -108,6 +108,39 @@
+         }
      }
  
-     Shortcuts {}
-+    BrightnessWidget {}
-     BatteryMonitor {}
-     IdleMonitors {
-         lock: lock
++    // qmllint disable unresolved-type
++    CustomShortcut {
++        // qmllint enable unresolved-type
++        name: "display"
++        description: "Toggle display popout"
++        onPressed: {
++            const comps = ShellState.componentsForActive();
++            const icons = comps?.find("taskbarStatusIcons");
++            const popouts = comps?.bar?.popouts;
++            if (!icons || !popouts)
++                return;
++
++            if (popouts.hasCurrent && popouts.currentName === "brightness") {
++                popouts.hasCurrent = false;
++                return;
++            }
++
++            const icon = (() => {
++                const items = icons.items.children;
++                for (let i = 0; i < items.length; i++)
++                    if (items[i].name === "brightness")
++                        return items[i];
++                return null;
++            })();
++            if (!icon)
++                return;
++
++            popouts.currentName = "brightness";
++            popouts.currentCenter = icon.mapToItem(comps.bar, 0, icon.implicitHeight / 2).y;
++            popouts.hasCurrent = true;
++        }
++    }
++
+     IpcHandler {
+         function toggle(drawer: string): void {
+             if (list().split("\n").includes(drawer)) {
 --- a/modules/bar/components/StatusIcons.qml
 +++ b/modules/bar/components/StatusIcons.qml
 @@ -61,7 +61,17 @@
@@ -228,195 +252,6 @@
 +        onExited: {
 +            root.nightLightBusy = false;
 +            statusProc.running = true;
-+        }
-+    }
-+}
---- /dev/null
-+++ b/modules/widgets/BrightnessWidget.qml
-@@ -0,0 +1,186 @@
-+pragma ComponentBehavior: Bound
-+
-+import QtQuick
-+import QtQuick.Layouts
-+import Quickshell
-+import Quickshell.Io
-+import Quickshell.Wayland
-+import Caelestia.Config
-+import Caelestia.I18n
-+import qs.components
-+import qs.components.controls
-+import qs.services
-+
-+// Floating brightness control. A layer-shell overlay pinned above normal
-+// windows: drag the card to move it, drag the slider (or scroll) to set the
-+// panel brightness. Toggled through IPC:
-+//
-+//     caelestia shell brightnessWidget toggle
-+//
-+// The screen is picked at open time from the focused monitor, so the widget
-+// appears where the pointer/keyboard focus is on a multi-monitor setup.
-+PanelWindow {
-+    id: root
-+
-+    readonly property var monitor: Brightness.getMonitorForScreen(root.screen)
-+    readonly property real step: GlobalConfig.services.brightnessIncrement
-+
-+    property bool shown: false
-+    // Declarative bindings to `margins` (a value type): the drag handlers
-+    // update these plain reals, never the grouped property imperatively.
-+    property real marginLeft: 0
-+    property real marginTop: 96
-+    property real dragStartLeft: 0
-+    property real dragStartTop: 0
-+
-+    WlrLayershell.namespace: "caelestia-brightness-widget"
-+    WlrLayershell.layer: WlrLayer.Overlay
-+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-+
-+    color: "transparent"
-+    // Caelestia's Tokens/Config services are screen-scoped; a panel that skips
-+    // these bindings reads Tokens before a screen exists and warns on startup.
-+    contentItem.Config.screen: root.screen?.name ?? ""
-+    contentItem.Tokens.screen: root.screen?.name ?? ""
-+    anchors.top: true
-+    anchors.left: true
-+    margins.top: root.marginTop
-+    margins.left: root.marginLeft
-+    implicitWidth: 340
-+    // Measured through the card: Tokens are attached to contentItem, so this
-+    // binding must not read them from the window object itself.
-+    implicitHeight: card.implicitHeight
-+    exclusiveZone: -1
-+    aboveWindows: true
-+    focusable: false
-+    visible: root.shown
-+
-+    function open(): void {
-+        const screens = Quickshell.screens;
-+        const focused = screens.find(s => Hypr.monitorFor(s)?.focused) ?? screens[0];
-+        if (focused)
-+            root.screen = focused;
-+        root.marginLeft = Math.max(16, (root.screen?.width ?? 1920) - root.implicitWidth - 48);
-+        root.marginTop = 96;
-+        root.shown = true;
-+    }
-+
-+    function close(): void {
-+        root.shown = false;
-+    }
-+
-+    function toggle(): void {
-+        if (root.shown)
-+            root.close();
-+        else
-+            root.open();
-+    }
-+
-+    IpcHandler {
-+        target: "brightnessWidget"
-+
-+        function toggle(): void {
-+            root.toggle();
-+        }
-+
-+        // `show` is reserved by the IPC layer (it prints the target's
-+        // functions), so the open/close pair uses different names.
-+        function open(): void {
-+            root.open();
-+        }
-+
-+        function close(): void {
-+            root.close();
-+        }
-+
-+        function status(): string {
-+            return root.shown ? "open" : "closed";
-+        }
-+    }
-+
-+    StyledRect {
-+        id: card
-+
-+        anchors.fill: parent
-+        color: Colours.tPalette.m3surfaceContainer
-+        radius: Tokens.rounding.extraLarge
-+        implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
-+
-+        DragHandler {
-+            target: null
-+            acceptedButtons: Qt.LeftButton
-+
-+            onActiveChanged: {
-+                if (active) {
-+                    root.dragStartLeft = root.marginLeft;
-+                    root.dragStartTop = root.marginTop;
-+                }
-+            }
-+
-+            onTranslationChanged: {
-+                root.marginLeft = root.dragStartLeft + translation.x;
-+                root.marginTop = root.dragStartTop + translation.y;
-+            }
-+        }
-+
-+        WheelHandler {
-+            acceptedDevices: PointerDevice.Mouse
-+
-+            onWheel: event => {
-+                if (!root.monitor)
-+                    return;
-+                const delta = event.angleDelta.y > 0 ? root.step : -root.step;
-+                root.monitor.setBrightness(root.monitor.brightness + delta);
-+            }
-+        }
-+
-+        ColumnLayout {
-+            id: layout
-+
-+            anchors.fill: parent
-+            anchors.margins: Tokens.padding.large
-+            spacing: Tokens.spacing.small
-+
-+            RowLayout {
-+                Layout.fillWidth: true
-+                spacing: Tokens.spacing.small
-+
-+                MaterialIcon {
-+                    text: "wb_sunny"
-+                    font: Tokens.font.icon.medium
-+                    color: Colours.palette.m3primary
-+                }
-+
-+                StyledText {
-+                    Layout.fillWidth: true
-+                    text: Tr.tr("Brightness")
-+                    font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
-+                    color: Colours.palette.m3onSurface
-+                }
-+
-+                StyledText {
-+                    text: `${Math.round((root.monitor?.brightness ?? 0) * 100)}%`
-+                    font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
-+                    color: Colours.palette.m3onSurfaceVariant
-+                }
-+
-+                IconButton {
-+                    isRound: true
-+                    type: IconButton.Text
-+                    icon: "close"
-+                    padding: Tokens.padding.extraSmall
-+
-+                    onClicked: root.close()
-+                }
-+            }
-+
-+            StyledSlider {
-+                Layout.fillWidth: true
-+                implicitHeight: 24
-+                value: root.monitor?.brightness ?? 0
-+
-+                onInteraction: v => root.monitor?.setBrightness(v)
-+            }
 +        }
 +    }
 +}

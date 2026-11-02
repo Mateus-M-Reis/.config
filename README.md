@@ -99,19 +99,17 @@ with `--once` / `--dry-run`.
 
 ## Display controls
 
-`SUPER + SHIFT + B` toggles a floating brightness card in the top-right corner
-of the focused monitor (equivalently `caelestia shell brightnessWidget toggle`).
-The sun button in the bar's status pill, between the Wi-Fi and Bluetooth icons,
-opens a **Display** popout attached to the bar instead, just like its neighbours.
-Both show the current level; drag the slider or scroll over it to change the
-panel brightness. The popout also has the Night light switch described below.
-The IPC target exposes `open`, `close` and `status`.
+`SUPER + SHIFT + B` and the sun button in the bar's status pill, between the
+Wi-Fi and Bluetooth icons, both toggle a **Display** popout attached to the bar
+just like its neighbours. It holds the panel brightness slider and the Night
+light switch described below; drag the slider or scroll over it to change the
+brightness.
 
 This is a local addition to the Caelestia shell, not part of the package:
-`caelestia/brightness-widget.patch` adds
-`modules/widgets/BrightnessWidget.qml` and
-`modules/bar/popouts/BrightnessPopout.qml`, registers them, and inserts the
-status-pill entry next to the network icon.
+`caelestia/display-popout.patch` adds
+`modules/bar/popouts/BrightnessPopout.qml`, registers it, inserts the
+status-pill entry, and registers the `display` global shortcut used by the
+keybind.
 
 ## Night light
 
@@ -152,7 +150,7 @@ the dead-key sequence into the composed character (`'` + `a` → `á`).
 The local copy shadows `/etc/xdg/quickshell/caelestia` and is 12 MB, so it is
 not tracked here. The changes themselves are kept as patches in
 `caelestia/`: `lock-compose.patch` (this section) and
-`brightness-widget.patch`. After a `caelestia-shell` update, refresh the copy
+`display-popout.patch`. After a `caelestia-shell` update, refresh the copy
 and re-apply both:
 
 ```sh
