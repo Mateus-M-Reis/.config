@@ -68,12 +68,20 @@ caelestia wallpaper -f ~/Pictures/wallpapers/your-wallpaper.jpg
 ## Wallpaper schedule
 
 `hypr/utils/wallpaper-daynight.sh` starts from `execs.lua` and changes the
-wallpaper when the day/night period changes: the first `cv*` image in
-`~/Pictures/wallpapers` from 06:00, `tiger_neon.jpg` from 18:00. It uses
-`caelestia wallpaper -f`, so the whole scheme follows — terminals via
-`sequences.txt`, and nvim via its watch on `scheme.json`. A manual pick stays
-until the next boundary. Override the hours with `DAY_START` / `NIGHT_START`
-(24h clock), or run it once with `--once` / `--dry-run`.
+wallpaper four times a day, alternating two light and two dark periods:
+
+| Slot | Time | Wallpaper | Scheme |
+| --- | --- | --- | --- |
+| morning | 06:00-11:59 | first `cv*` in `~/Pictures/wallpapers` | light |
+| afternoon | 12:00-17:59 | `tiger_neon_cropped_red2.jpg` | light |
+| evening | 18:00-23:59 | `tiger_neon.jpg` | dark |
+| night | 00:00-05:59 | `tiger neon yellow.jpg` | dark |
+
+It uses `caelestia wallpaper -f`, so the whole scheme follows — the bar,
+terminals via `sequences.txt`, and nvim via its watch on `scheme.json`. A manual
+pick stays until the next boundary. Override the boundaries with
+`MORNING_START` / `AFTERNOON_START` / `EVENING_START` (24h clock), or run it once
+with `--once` / `--dry-run`.
 
 ## Lock screen on ABNT2
 
